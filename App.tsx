@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { ParsedTransactionData, Transaction, TransactionType } from './types';
-import { parseTransactionFromText } from './services/geminiService';
+// parseTransactionFromText теперь вызывается через API endpoint на сервере
 import { getTransactions, saveTransaction, deleteTransaction, updateTransaction, getUsdRate, setUsdRate } from './services/storageService';
 import { TransactionList } from './components/TransactionList';
 import { InputArea } from './components/InputArea';
@@ -100,8 +100,24 @@ const App: React.FC = () => {
   const handleSendText = async (text: string) => {
     setLoading(true);
     try {
-      // Передаем существующие транзакции для умной категоризации
-      const parsedData: ParsedTransactionData | null = await parseTransactionFromText(text, transactions);
+      // Используем API endpoint на сервере для парсинга (ключ берется с сервера)
+      const response = await fetch('/api/parse-transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text,
+          existingTransactions: transactions,
+        }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Ошибка при распознавании транзакции');
+      }
+
+      const parsedData: ParsedTransactionData | null = await response.json();
 
       if (parsedData) {
         // Конвертация валют
@@ -128,9 +144,9 @@ const App: React.FC = () => {
       } else {
         alert("Не удалось распознать данные. Попробуй: 'Миша 200 долларов' или 'Мама перевод'.");
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      alert("Ошибка. Проверьте интернет или API ключ.");
+      alert(e.message || "Ошибка. Проверьте интернет или API ключ.");
     } finally {
       setLoading(false);
     }
