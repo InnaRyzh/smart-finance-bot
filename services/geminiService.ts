@@ -2,7 +2,17 @@ import { GoogleGenAI, Type } from "@google/genai";
 import { ParsedTransactionData, TransactionType, Transaction } from '../types';
 
 // Получаем API ключ из переменных окружения
-const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+// На сервере: из process.env
+// В клиенте: будет передан через API
+const getApiKey = () => {
+  // Проверяем все возможные источники
+  return process.env.API_KEY || 
+         process.env.GEMINI_API_KEY || 
+         (typeof window !== 'undefined' && (window as any).__GEMINI_API_KEY__) ||
+         '';
+};
+
+const apiKey = getApiKey();
 
 if (!apiKey) {
   console.error('⚠️ GEMINI_API_KEY не установлен! Проверь переменные окружения в Railway.');

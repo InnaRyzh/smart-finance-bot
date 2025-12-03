@@ -9,6 +9,31 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Middleware для парсинга JSON
+app.use(express.json());
+
+// API endpoint для парсинга транзакций (использует ключ с сервера)
+app.post('/api/parse-transaction', async (req, res) => {
+  try {
+    const { text, existingTransactions } = req.body;
+    
+    if (!text) {
+      return res.status(400).json({ error: 'Текст не предоставлен' });
+    }
+
+    // Импортируем функцию парсинга
+    const { parseTransactionFromText } = await import('./dist/services/geminiService.js');
+    
+    // Парсим транзакцию (ключ берется из переменных окружения сервера)
+    const result = await parseTransactionFromText(text, existingTransactions || []);
+    
+    res.json(result);
+  } catch (error) {
+    console.error('Ошибка парсинга транзакции:', error);
+    res.status(500).json({ error: error.message || 'Ошибка при распознавании транзакции' });
+  }
+});
+
 // Раздача статических файлов из папки dist
 app.use(express.static(join(__dirname, 'dist')));
 
@@ -24,6 +49,7 @@ app.get('*', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Сервер запущен на порту ${PORT}`);
+  console.log(`API ключ: ${process.env.GEMINI_API_KEY ? '✅ установлен' : '❌ не установлен'}`);
 });
 
 
