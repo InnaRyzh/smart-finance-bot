@@ -1,5 +1,6 @@
 import React from 'react';
 import { Transaction, TransactionType } from '../types';
+import { getCategoryEmoji, getCategoryColor } from '../utils/categoryEmojis';
 
 interface TransactionsModalProps {
   isOpen: boolean;
@@ -85,10 +86,8 @@ export const TransactionsModal: React.FC<TransactionsModalProps> = ({
                         className="bg-zinc-800/60 backdrop-blur-sm rounded-xl p-3 flex justify-between items-center border border-zinc-700/30"
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${
-                            tx.type === TransactionType.INCOME ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'
-                          }`}>
-                            {tx.type === TransactionType.INCOME ? '↓' : '↑'}
+                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0 ${getCategoryColor(tx.category, tx.type === TransactionType.INCOME ? 'income' : 'expense')}`}>
+                            {getCategoryEmoji(tx.category)}
                           </div>
                           <div className="flex flex-col min-w-0 flex-1">
                             <span className="font-medium text-white text-sm">{tx.category}</span>

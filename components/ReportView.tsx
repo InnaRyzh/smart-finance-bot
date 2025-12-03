@@ -3,6 +3,8 @@ import { Transaction, TransactionType } from '../types';
 import { ChartSection } from './ChartSection';
 import { StatsCard } from './StatsCard';
 import { TransactionsModal } from './TransactionsModal';
+import { hapticLight } from '../utils/haptic';
+import { getCategoryEmoji } from '../utils/categoryEmojis';
 
 interface ReportViewProps {
   transactions: Transaction[];
@@ -88,13 +90,19 @@ export const ReportView: React.FC<ReportViewProps> = ({ transactions }) => {
           label="Доход" 
           value={stats.income} 
           type="positive" 
-          onClick={() => setShowIncomeModal(true)}
+          onClick={() => {
+            hapticLight();
+            setShowIncomeModal(true);
+          }}
         />
         <StatsCard 
           label="Расход" 
           value={stats.expense} 
           type="negative"
-          onClick={() => setShowExpenseModal(true)}
+          onClick={() => {
+            hapticLight();
+            setShowExpenseModal(true);
+          }}
         />
       </div>
 

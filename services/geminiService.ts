@@ -1,7 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { ParsedTransactionData, TransactionType } from '../types';
+import { ParsedTransactionData, TransactionType, Transaction } from '../types';
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+/**
+ * Получить список существующих категорий из транзакций
+ * Это помогает AI использовать уже существующие категории вместо создания новых
+ */
+const getExistingCategories = (transactions: Transaction[]): string[] => {
+  const categories = new Set<string>();
+  transactions.forEach(tx => {
+    if (tx.category) {
+      categories.add(tx.category.toLowerCase().trim());
+    }
+  });
+  return Array.from(categories).sort();
+};
 
 const SYSTEM_INSTRUCTION = `
 Ты — умный финансовый ассистент, встроенный в Telegram-бот. Твоя задача — парсить сообщения пользователя о доходах и расходах.
@@ -36,20 +50,31 @@ const SYSTEM_INSTRUCTION = `
 Сегодняшняя дата: ${new Date().toISOString().split('T')[0]}.
 `;
 
-export const parseTransactionFromText = async (text: string): Promise<ParsedTransactionData | null> => {
+export const parseTransactionFromText = async (
+  text: string, 
+  existingTransactions: Transaction[] = []
+): Promise<ParsedTransactionData | null> => {
   try {
+    // Получаем существующие категории для умной категоризации
+    const existingCategories = getExistingCategories(existingTransactions);
+    const categoriesContext = existingCategories.length > 0 
+      ? `\n\nСУЩЕСТВУЮЩИЕ КАТЕГОРИИ (используй их если подходят): ${existingCategories.join(', ')}\nВАЖНО: Старайся использовать существующие категории вместо создания новых. Это обеспечит консистентность данных.`
+      : '';
+
+    const enhancedInstruction = SYSTEM_INSTRUCTION + categoriesContext;
+
     const response = await ai.models.generateContent({
       model: "gemini-2.5-flash",
       contents: text,
       config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
+        systemInstruction: enhancedInstruction,
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
           properties: {
             amount: { type: Type.NUMBER, description: "Сумма транзакции" },
             currency: { type: Type.STRING, enum: ["UAH", "USD"], description: "Валюта транзакции" },
-            category: { type: Type.STRING, description: "Категория (1-2 слова)" },
+            category: { type: Type.STRING, description: "Категория (1-2 слова). Используй существующие категории если они подходят." },
             description: { type: Type.STRING, description: "Краткое описание" },
             date: { type: Type.STRING, description: "Дата транзакции YYYY-MM-DD" },
             type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"], description: "Тип транзакции" }

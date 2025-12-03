@@ -1,5 +1,7 @@
 import React from 'react';
 import { Transaction, TransactionType } from '../types';
+import { getCategoryEmoji, getCategoryColor } from '../utils/categoryEmojis';
+import { hapticLight } from '../utils/haptic';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -37,13 +39,16 @@ export const TransactionList: React.FC<TransactionListProps> = ({ transactions, 
             {grouped[date].map(tx => (
               <div 
                 key={tx.id} 
-                onClick={() => onTransactionClick(tx)}
+                onClick={() => {
+                  hapticLight();
+                  onTransactionClick(tx);
+                }}
                 className="bg-zinc-800/60 active:bg-zinc-700/80 backdrop-blur-sm rounded-2xl p-4 flex justify-between items-center transition-colors cursor-pointer border border-zinc-700/30 shadow-sm"
               >
                 <div className="flex items-center gap-4">
-                  {/* Иконка-заглушка на основе типа (можно заменить на эмодзи по категориям потом) */}
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${tx.type === TransactionType.INCOME ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                    {tx.type === TransactionType.INCOME ? '↓' : '↑'}
+                  {/* Smart Emoji для категории */}
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-lg ${getCategoryColor(tx.category, tx.type === TransactionType.INCOME ? 'income' : 'expense')}`}>
+                    {getCategoryEmoji(tx.category)}
                   </div>
                   
                   <div className="flex flex-col">

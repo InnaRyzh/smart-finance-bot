@@ -7,6 +7,7 @@ import { TransactionList } from './components/TransactionList';
 import { InputArea } from './components/InputArea';
 import { ReportView } from './components/ReportView';
 import { EditTransactionModal } from './components/EditTransactionModal';
+import { hapticLight, hapticMedium, hapticSuccess, hapticSelection } from './utils/haptic';
 
 // Расширяем window для TypeScript
 declare global {
@@ -29,6 +30,11 @@ declare global {
           text_color?: string;
         };
         isExpanded: boolean;
+        HapticFeedback?: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+          selectionChanged: () => void;
+        };
       };
     };
   }
@@ -65,7 +71,10 @@ const App: React.FC = () => {
       }
     }
 
-    setTransactions(getTransactions());
+    // Загружаем транзакции асинхронно
+    getTransactions().then(data => {
+      setTransactions(data);
+    });
     setUsdRateState(getUsdRate());
   }, []);
 
@@ -91,7 +100,8 @@ const App: React.FC = () => {
   const handleSendText = async (text: string) => {
     setLoading(true);
     try {
-      const parsedData: ParsedTransactionData | null = await parseTransactionFromText(text);
+      // Передаем существующие транзакции для умной категоризации
+      const parsedData: ParsedTransactionData | null = await parseTransactionFromText(text, transactions);
 
       if (parsedData) {
         // Конвертация валют
@@ -111,8 +121,9 @@ const App: React.FC = () => {
           type: parsedData.type
         };
 
-        const updated = saveTransaction(newTransaction);
+        const updated = await saveTransaction(newTransaction);
         setTransactions(updated);
+        hapticSuccess();
         setActiveTab('history');
       } else {
         alert("Не удалось распознать данные. Попробуй: 'Миша 200 долларов' или 'Мама перевод'.");
@@ -126,17 +137,19 @@ const App: React.FC = () => {
   };
 
   const handleTransactionClick = (tx: Transaction) => {
+    hapticLight();
     setEditingTransaction(tx);
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateTransaction = (updatedTx: Transaction) => {
-    const updated = updateTransaction(updatedTx);
+  const handleUpdateTransaction = async (updatedTx: Transaction) => {
+    const updated = await updateTransaction(updatedTx);
     setTransactions(updated);
   };
 
-  const handleDeleteTransaction = (id: string) => {
-    const updated = deleteTransaction(id);
+  const handleDeleteTransaction = async (id: string) => {
+    hapticMedium();
+    const updated = await deleteTransaction(id);
     setTransactions(updated);
   };
 
@@ -172,7 +185,10 @@ const App: React.FC = () => {
         {/* Tab Switcher */}
         <div className="flex bg-zinc-800/80 p-1 rounded-2xl">
           <button 
-            onClick={() => setActiveTab('history')}
+            onClick={() => {
+              hapticSelection();
+              setActiveTab('history');
+            }}
             className={`flex-1 py-2 text-sm font-medium rounded-xl transition-all duration-300 ${
               activeTab === 'history' 
                 ? 'bg-zinc-600 text-white shadow-md transform scale-[1.02]' 
@@ -182,7 +198,10 @@ const App: React.FC = () => {
             Операции
           </button>
           <button 
-            onClick={() => setActiveTab('report')}
+            onClick={() => {
+              hapticSelection();
+              setActiveTab('report');
+            }}
             className={`flex-1 py-2 text-sm font-medium rounded-xl transition-all duration-300 ${
               activeTab === 'report' 
                 ? 'bg-zinc-600 text-white shadow-md transform scale-[1.02]' 

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { hapticLight } from '../utils/haptic';
 
 interface InputAreaProps {
   onSend: (text: string) => Promise<void>;
@@ -11,6 +12,7 @@ export const InputArea: React.FC<InputAreaProps> = ({ onSend, isLoading }) => {
 
   const handleSubmit = async () => {
     if (!text.trim() || isLoading) return;
+    hapticLight();
     await onSend(text);
     setText('');
   };
