@@ -1,0 +1,5 @@
+{
+  "name": "Smart Finance Bot",
+  "description": "Умный финансовый трекер для Telegram с использованием ИИ для распознавания естественного языка.",
+  "requestFramePermissions": []
+}
