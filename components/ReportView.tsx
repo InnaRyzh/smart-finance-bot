@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Transaction, TransactionType } from '../types';
 import { ChartSection } from './ChartSection';
 import { StatsCard } from './StatsCard';
+import { TransactionsModal } from './TransactionsModal';
 
 interface ReportViewProps {
   transactions: Transaction[];
@@ -9,6 +10,8 @@ interface ReportViewProps {
 
 export const ReportView: React.FC<ReportViewProps> = ({ transactions }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [showIncomeModal, setShowIncomeModal] = useState(false);
+  const [showExpenseModal, setShowExpenseModal] = useState(false);
 
   // Фильтрация транзакций по выбранному месяцу
   const monthlyData = useMemo(() => {
@@ -81,8 +84,18 @@ export const ReportView: React.FC<ReportViewProps> = ({ transactions }) => {
 
       {/* Карточки */}
       <div className="grid grid-cols-2 gap-3 mb-6">
-        <StatsCard label="Доход" value={stats.income} type="positive" />
-        <StatsCard label="Расход" value={stats.expense} type="negative" />
+        <StatsCard 
+          label="Доход" 
+          value={stats.income} 
+          type="positive" 
+          onClick={() => setShowIncomeModal(true)}
+        />
+        <StatsCard 
+          label="Расход" 
+          value={stats.expense} 
+          type="negative"
+          onClick={() => setShowExpenseModal(true)}
+        />
       </div>
 
       {/* График */}
@@ -112,6 +125,22 @@ export const ReportView: React.FC<ReportViewProps> = ({ transactions }) => {
           <p className="text-zinc-500 text-sm text-center py-4">Категории появятся, когда будут расходы.</p>
         )}
       </div>
+
+      {/* Модальные окна */}
+      <TransactionsModal
+        isOpen={showIncomeModal}
+        onClose={() => setShowIncomeModal(false)}
+        transactions={monthlyData}
+        type={TransactionType.INCOME}
+        title="Доходы"
+      />
+      <TransactionsModal
+        isOpen={showExpenseModal}
+        onClose={() => setShowExpenseModal(false)}
+        transactions={monthlyData}
+        type={TransactionType.EXPENSE}
+        title="Расходы"
+      />
     </div>
   );
 };

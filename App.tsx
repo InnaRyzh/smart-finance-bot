@@ -76,6 +76,18 @@ const App: React.FC = () => {
     }, 0);
   }, [transactions]);
 
+  // Доходы и расходы за всё время
+  const { totalIncome, totalExpense } = useMemo(() => {
+    return transactions.reduce((acc, t) => {
+      if (t.type === TransactionType.INCOME) {
+        acc.totalIncome += t.amount;
+      } else {
+        acc.totalExpense += Math.abs(t.amount);
+      }
+      return acc;
+    }, { totalIncome: 0, totalExpense: 0 });
+  }, [transactions]);
+
   const handleSendText = async (text: string) => {
     setLoading(true);
     try {
@@ -209,9 +221,23 @@ const App: React.FC = () => {
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 rounded-3xl shadow-xl shadow-blue-900/20 relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-5 rounded-full -mr-10 -mt-10 blur-2xl"></div>
               <p className="text-blue-100 text-sm font-medium mb-1 relative z-10">Текущий баланс</p>
-              <h2 className="text-4xl font-bold text-white tracking-tight relative z-10">
+              <h2 className="text-4xl font-bold text-white tracking-tight relative z-10 mb-3">
                 {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', maximumFractionDigits: 0 }).format(totalBalance)}
               </h2>
+              <div className="flex gap-4 text-sm relative z-10">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-emerald-200">↓</span>
+                  <span className="text-blue-100 font-medium">
+                    {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', maximumFractionDigits: 0 }).format(totalIncome)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-rose-200">↑</span>
+                  <span className="text-blue-100 font-medium">
+                    {new Intl.NumberFormat('uk-UA', { style: 'currency', currency: 'UAH', maximumFractionDigits: 0 }).format(totalExpense)}
+                  </span>
+                </div>
+              </div>
             </div>
             
             <div className="pt-2">
