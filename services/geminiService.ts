@@ -1,7 +1,14 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { ParsedTransactionData, TransactionType, Transaction } from '../types';
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Получаем API ключ из переменных окружения
+const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+
+if (!apiKey) {
+  console.error('⚠️ GEMINI_API_KEY не установлен! Проверь переменные окружения в Railway.');
+}
+
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 /**
  * Получить список существующих категорий из транзакций
@@ -54,6 +61,10 @@ export const parseTransactionFromText = async (
   text: string, 
   existingTransactions: Transaction[] = []
 ): Promise<ParsedTransactionData | null> => {
+  if (!ai) {
+    throw new Error('API ключ не настроен. Проверь переменную GEMINI_API_KEY в Railway Variables.');
+  }
+
   try {
     // Получаем существующие категории для умной категоризации
     const existingCategories = getExistingCategories(existingTransactions);
@@ -90,8 +101,18 @@ export const parseTransactionFromText = async (
     }
     return null;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("Ошибка при распознавании текста Gemini:", error);
+    
+    // Более информативные сообщения об ошибках
+    if (error?.message?.includes('API_KEY') || error?.message?.includes('api key')) {
+      throw new Error('API ключ неверный или не установлен. Проверь переменную GEMINI_API_KEY в Railway Variables.');
+    }
+    
+    if (error?.message?.includes('quota') || error?.message?.includes('limit')) {
+      throw new Error('Превышен лимит запросов к API. Попробуй позже.');
+    }
+    
     throw new Error("Не удалось распознать транзакцию. Попробуйте переформулировать.");
   }
 };
