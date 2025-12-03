@@ -1,0 +1,15 @@
+# NIXPACKS конфигурация для Railway
+# Явно указываем использовать npm install вместо npm ci
+
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm start"
+
