@@ -123,7 +123,9 @@ export const ReportView: React.FC<ReportViewProps> = ({ transactions }) => {
         {categories.map((cat) => (
           <div key={cat.name} className="flex items-center justify-between bg-zinc-800/80 p-3 rounded-lg border border-zinc-700/50">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-8 bg-blue-500 rounded-full opacity-60"></div>
+              <div className="w-8 h-8 rounded-full flex items-center justify-center text-sm bg-blue-500/10">
+                {getCategoryEmoji(cat.name)}
+              </div>
               <span className="font-medium text-zinc-200">{cat.name}</span>
             </div>
             <span className="font-bold text-white">{formatMoney(cat.amount)}</span>
