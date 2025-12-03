@@ -41,13 +41,23 @@ export const getTransactions = async (): Promise<Transaction[]> => {
 export const saveTransaction = async (transaction: Transaction): Promise<Transaction[]> => {
   // Сохраняем в Supabase если доступен
   if (useSupabase()) {
-    await saveTransactionToSupabase(transaction);
+    try {
+      const success = await saveTransactionToSupabase(transaction);
+      if (success) {
+        console.log('✅ Транзакция сохранена в Supabase:', transaction.id);
+      } else {
+        console.warn('⚠️ Не удалось сохранить в Supabase, используем localStorage');
+      }
+    } catch (error) {
+      console.error('❌ Ошибка сохранения в Supabase:', error);
+    }
   }
 
   // Всегда сохраняем в localStorage для офлайн доступа
   const current = await getTransactions();
   const updated = [transaction, ...current];
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+  console.log('💾 Транзакция сохранена в localStorage:', transaction.id);
   return updated;
 };
 
