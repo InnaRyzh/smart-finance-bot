@@ -3,16 +3,27 @@ import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
-    const env = loadEnv(mode, '.', '');
-    // Для Railway: используем process.env напрямую, если переменная не найдена в .env файле
-    const geminiApiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
+    // Загружаем переменные из .env файлов
+    const env = loadEnv(mode, process.cwd(), '');
     
-    // Логирование для отладки (только в production build)
-    if (mode === 'production') {
-        console.log('🔍 Проверка переменных окружения:');
-        console.log('  GEMINI_API_KEY из env:', env.GEMINI_API_KEY ? '✅ установлен' : '❌ не найден');
-        console.log('  GEMINI_API_KEY из process.env:', process.env.GEMINI_API_KEY ? '✅ установлен' : '❌ не найден');
-        console.log('  Итоговый ключ:', geminiApiKey ? `✅ установлен (длина: ${geminiApiKey.length})` : '❌ ПУСТОЙ!');
+    // Для Railway: переменные окружения доступны через process.env во время сборки
+    // Проверяем все возможные источники
+    const geminiApiKey = 
+        env.GEMINI_API_KEY || 
+        env.VITE_GEMINI_API_KEY ||
+        process.env.GEMINI_API_KEY || 
+        process.env.VITE_GEMINI_API_KEY ||
+        '';
+    
+    // Логирование для отладки
+    console.log('🔍 [Vite Config] Проверка переменных окружения:');
+    console.log('  Mode:', mode);
+    console.log('  env.GEMINI_API_KEY:', env.GEMINI_API_KEY ? `✅ (${env.GEMINI_API_KEY.substring(0, 10)}...)` : '❌');
+    console.log('  process.env.GEMINI_API_KEY:', process.env.GEMINI_API_KEY ? `✅ (${process.env.GEMINI_API_KEY.substring(0, 10)}...)` : '❌');
+    console.log('  Итоговый ключ:', geminiApiKey ? `✅ установлен (длина: ${geminiApiKey.length})` : '❌ ПУСТОЙ!');
+    
+    if (!geminiApiKey && mode === 'production') {
+        console.error('⚠️ ВНИМАНИЕ: GEMINI_API_KEY не найден! Проверь переменные в Railway.');
     }
     
     return {
