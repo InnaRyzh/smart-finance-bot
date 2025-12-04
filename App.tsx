@@ -7,6 +7,7 @@ import { TransactionList } from './components/TransactionList';
 import { InputArea } from './components/InputArea';
 import { ReportView } from './components/ReportView';
 import { EditTransactionModal } from './components/EditTransactionModal';
+import { MonobankSettings } from './components/MonobankSettings';
 import { hapticLight, hapticMedium, hapticSuccess, hapticSelection } from './utils/haptic';
 
 // Расширяем window для TypeScript
