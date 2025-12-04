@@ -44,6 +44,49 @@ const SYSTEM_INSTRUCTION = `
 6. Определи дату (сегодня: ${new Date().toISOString().split('T')[0]}).
 `;
 
+// --- Логика Monobank (прямо здесь, чтобы работать на сервере) ---
+
+const MONOBANK_API_URL = 'https://api.monobank.ua';
+
+// Получить категорию по MCC коду
+const getCategoryByMCC = (mcc, type) => {
+  const mccMap = {
+    5812: 'Ресторан', 5814: 'Ресторан', 5811: 'Ресторан',
+    5411: 'Продукты', 5499: 'Продукты',
+    4121: 'Такси', 4111: 'Транспорт', 4112: 'Транспорт',
+    5912: 'Аптека', 8011: 'Врач', 8021: 'Врач',
+    4900: 'Коммуналка', 4814: 'Коммуналка',
+    5311: 'Покупки', 5310: 'Покупки',
+    7832: 'Кино', 7911: 'Развлечения',
+    5542: 'Бензин', 5541: 'Бензин',
+  };
+  return mccMap[mcc] || (type === 'INCOME' ? 'Доход' : 'Расход');
+};
+
+// Преобразовать транзакцию Monobank в формат приложения
+const convertMonobankTransaction = (monoTx) => {
+  const currency = monoTx.currencyCode === 840 ? 'USD' : 'UAH';
+  const amountInUAH = currency === 'USD' 
+    ? (monoTx.amount / 100) * 40 // Примерный курс
+    : monoTx.amount / 100;
+  
+  const type = monoTx.amount < 0 ? 'EXPENSE' : 'INCOME';
+  const absoluteAmount = Math.abs(amountInUAH);
+  const category = getCategoryByMCC(monoTx.mcc, type);
+  const date = new Date(monoTx.time * 1000).toISOString().split('T')[0];
+
+  return {
+    id: `mono_${monoTx.id}`,
+    amount: absoluteAmount,
+    originalAmount: currency === 'USD' ? Math.abs(monoTx.amount / 100) : undefined,
+    originalCurrency: currency === 'USD' ? 'USD' : undefined,
+    category,
+    description: monoTx.description || 'Транзакция Monobank',
+    date,
+    type,
+  };
+};
+
 // API endpoint для синхронизации Monobank
 app.post('/api/sync-monobank', async (req, res) => {
   console.log('📥 Получен запрос на синхронизацию Monobank');
@@ -55,12 +98,55 @@ app.post('/api/sync-monobank', async (req, res) => {
       return res.status(400).json({ error: 'Токен Monobank не предоставлен' });
     }
 
-    // Импортируем функцию синхронизации
-    const { syncMonobankTransactions } = await import('./dist/services/monobankService.js');
+    // Получаем список счетов
+    const accountsResponse = await fetch(`${MONOBANK_API_URL}/personal/client-info`, {
+      headers: { 'X-Token': token },
+    });
+
+    if (!accountsResponse.ok) {
+      if (accountsResponse.status === 403) {
+        throw new Error('Неверный токен Monobank. Проверь токен в настройках.');
+      }
+      throw new Error(`Ошибка Monobank API: ${accountsResponse.status}`);
+    }
+
+    const accountsData = await accountsResponse.json();
+    const accounts = accountsData.accounts || [];
     
-    // Синхронизируем транзакции
-    const transactions = await syncMonobankTransactions(token, days);
+    if (accounts.length === 0) {
+      throw new Error('Не найдено счетов в Monobank');
+    }
+
+    // Используем первый счет
+    const account = accounts[0];
     
+    // Вычисляем период
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - (days * 24 * 60 * 60);
+
+    console.log(`📊 Загрузка транзакций за период: ${new Date(from * 1000).toLocaleDateString()} - ${new Date(to * 1000).toLocaleDateString()}`);
+
+    // Получаем транзакции
+    const transactionsResponse = await fetch(
+      `${MONOBANK_API_URL}/personal/statement/${account.id}/${from}/${to}`,
+      { headers: { 'X-Token': token } }
+    );
+
+    if (!transactionsResponse.ok) {
+      if (transactionsResponse.status === 403) {
+        throw new Error('Неверный токен Monobank');
+      }
+      if (transactionsResponse.status === 429) {
+        throw new Error('Превышен лимит запросов к Monobank API. Подожди немного.');
+      }
+      throw new Error(`Ошибка Monobank API: ${transactionsResponse.status}`);
+    }
+
+    const monoTransactions = await transactionsResponse.json();
+
+    // Преобразуем в формат приложения
+    const transactions = monoTransactions.map(tx => convertMonobankTransaction(tx));
+
     console.log(`✅ Синхронизировано ${transactions.length} транзакций из Monobank`);
     
     res.json({
