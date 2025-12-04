@@ -44,6 +44,36 @@ const SYSTEM_INSTRUCTION = `
 6. Определи дату (сегодня: ${new Date().toISOString().split('T')[0]}).
 `;
 
+// API endpoint для синхронизации Monobank
+app.post('/api/sync-monobank', async (req, res) => {
+  console.log('📥 Получен запрос на синхронизацию Monobank');
+  
+  try {
+    const { token, days = 30 } = req.body;
+    
+    if (!token) {
+      return res.status(400).json({ error: 'Токен Monobank не предоставлен' });
+    }
+
+    // Импортируем функцию синхронизации
+    const { syncMonobankTransactions } = await import('./dist/services/monobankService.js');
+    
+    // Синхронизируем транзакции
+    const transactions = await syncMonobankTransactions(token, days);
+    
+    console.log(`✅ Синхронизировано ${transactions.length} транзакций из Monobank`);
+    
+    res.json({
+      success: true,
+      transactions,
+      count: transactions.length,
+    });
+  } catch (error) {
+    console.error('❌ Ошибка синхронизации Monobank:', error);
+    res.status(500).json({ error: error.message || 'Ошибка синхронизации Monobank' });
+  }
+});
+
 // API endpoint для парсинга
 app.post('/api/parse-transaction', async (req, res) => {
   console.log('📥 Получен запрос на парсинг транзакции');

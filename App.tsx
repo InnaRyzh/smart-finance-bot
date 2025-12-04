@@ -231,19 +231,42 @@ const App: React.FC = () => {
 
       {/* Settings Panel */}
       {showSettings && (
-        <div className="bg-zinc-800/80 backdrop-blur-sm mx-4 mt-2 mb-4 p-4 rounded-2xl space-y-3 animate-fade-in-down border border-zinc-700/50 shadow-lg">
-          <div className="flex justify-between items-center">
-            <span className="text-sm text-zinc-300">Курс USD/UAH:</span>
-            <input 
-              type="number" 
-              value={usdRate}
-              onChange={(e) => handleRateChange(e.target.value)}
-              className="bg-zinc-900 text-white rounded-lg px-3 py-1.5 w-24 text-right focus:outline-none focus:ring-2 focus:ring-blue-500/50"
-            />
+        <div className="space-y-3">
+          <div className="bg-zinc-800/80 backdrop-blur-sm mx-4 mt-2 mb-4 p-4 rounded-2xl space-y-3 animate-fade-in-down border border-zinc-700/50 shadow-lg">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-zinc-300">Курс USD/UAH:</span>
+              <input 
+                type="number" 
+                value={usdRate}
+                onChange={(e) => handleRateChange(e.target.value)}
+                className="bg-zinc-900 text-white rounded-lg px-3 py-1.5 w-24 text-right focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              />
+            </div>
+            <div className="text-[10px] text-zinc-500 pt-2 border-t border-zinc-700/50">
+               Настройки сохраняются только локально.
+            </div>
           </div>
-          <div className="text-[10px] text-zinc-500 pt-2 border-t border-zinc-700/50">
-             Настройки сохраняются только локально.
-          </div>
+
+          {/* Monobank Settings */}
+          <MonobankSettings 
+            onSync={async (newTransactions) => {
+              // Добавляем новые транзакции (избегаем дубликатов)
+              const current = await getTransactions();
+              const existingIds = new Set(current.map(t => t.id));
+              const uniqueNew = newTransactions.filter(t => !existingIds.has(t.id));
+              
+              if (uniqueNew.length > 0) {
+                // Сохраняем каждую новую транзакцию
+                for (const tx of uniqueNew) {
+                  await saveTransaction(tx);
+                }
+                // Обновляем список
+                const updated = await getTransactions();
+                setTransactions(updated);
+                hapticSuccess();
+              }
+            }}
+          />
         </div>
       )}
 
